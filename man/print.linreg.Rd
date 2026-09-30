@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-The object invisibly.
+The model object, invisibly.
 }
 \description{
 Print a linreg model

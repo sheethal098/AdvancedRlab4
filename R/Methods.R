@@ -1,153 +1,151 @@
-# Extract coefficients from the model
-# This allows coef(model) to return the coefficients
 #' Extract coefficients from a linreg model
 #'
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The regression coefficients.
+#' @return A named vector containing the regression coefficients.
+#'
 #' @export
 coef.linreg <- function(object, ...) {
   object$coefficients
 }
 
 
-# Extract residuals from the model
-# This allows resid(model) to return the residuals
 #' Extract residuals from a linreg model
 #'
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The model residuals.
+#' @return A vector containing the model residuals.
+#'
 #' @export
+#' @importFrom stats resid
+
 resid.linreg <- function(object, ...) {
   object$residuals
 }
 
 
-# Create the pred() function for different model types
-pred <- function(object, ...) {
-  UseMethod("pred")
-}
-
-
-# Return fitted values as predictions
 #' Return predictions from a linreg model
 #'
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The fitted values from the model.
+#' @return A vector containing the fitted values.
+#'
+#' @export
+pred <- function(object, ...) {
+  UseMethod("pred")
+}
+
+
 #' @export
 pred.linreg <- function(object, ...) {
   object$fitted.values
 }
 
-# Connect pred() to pred.linreg() for linreg models
-registerS3method("pred", "linreg", pred.linreg)
 
-
-# Print the main information from the model
 #' Print a linreg model
 #'
 #' @param x A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The object invisibly.
+#' @return The model object, invisibly.
+#'
 #' @export
 print.linreg <- function(x, ...) {
-  cat("Linear Regression Model\n")
-  cat("Formula:", deparse(x$formula), "\n\n")
-  cat("Coefficients:\n")
+
+  cat("Call:\n")
+  call_text <- paste(deparse(x$call), collapse = " ")
+  call_text <- gsub("[[:space:]]+", " ", call_text)
+
+  cat(call_text, "\n")
+
+
+  cat("\nCoefficients:\n")
   print(x$coefficients)
 
   invisible(x)
 }
 
-
-# Show the main results from the model
 #' Summarize a linreg model
 #'
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return A summary of the regression model.
+#' @return The model object, invisibly.
+#'
 #' @export
+#' @importFrom stats printCoefmat
 summary.linreg <- function(object, ...) {
 
-  # Put the coefficient results into one table
+  # Put the coefficient results into one numeric table
   coefficients <- cbind(
-    Estimate = as.vector(object$coefficients),
-    `Std. Error` = as.vector(object$std.error),
-    `t value` = as.vector(object$t.value),
-    `Pr(>|t|)` = as.vector(object$p.value)
+    Estimate = object$coefficients,
+    `Std. Error` = object$std.error,
+    `t value` = object$t.value,
+    `Pr(>|t|)` = object$p.value
   )
 
-  rownames(coefficients) <- rownames(object$coefficients)
+  rownames(coefficients) <- names(object$coefficients)
 
-  cat("Linear Regression Model\n")
-  cat("Formula:", deparse(object$formula), "\n\n")
+  cat("Call:\n")
+  print(object$call)
 
-  cat("Coefficients:\n")
-  print(coefficients)
+  cat("\nCoefficients:\n")
+  printCoefmat(
+    coefficients,
+    P.values = TRUE,
+    has.Pvalue = TRUE,
+    signif.stars = TRUE
+  )
 
-  # Show the error and degrees of freedom
-  cat("\nResidual standard error:", sqrt(object$sigma2), "\n")
-  cat("Degrees of freedom:", object$df, "\n")
+  cat(
+    "\nResidual standard error:",
+    sqrt(object$sigma2),
+    "on",
+    object$df,
+    "degrees of freedom\n"
+  )
 
   invisible(object)
 }
 
-
-# Connect summary() to summary.linreg() for linreg models
-registerS3method("summary", "linreg", summary.linreg)
-
-
-# Create plots for the regression model
 #' Plot a linreg model
+#'
+#' Produces Residuals vs Fitted and Scale-Location plots.
 #'
 #' @param x A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return A list of ggplot objects.
+#' @return A list containing two ggplot objects.
+#'
 #' @export
+#' @importFrom rlang .data
 plot.linreg <- function(x, ...) {
 
-  # Get the actual response values from the model
-  observed <- model.response(model.frame(x$formula, x$data))
+  # Get the design matrix
+  X <- x$X
 
-  # Get the predictor values used in the model
-  predictor <- model.matrix(x$formula, x$data)[, 2]
+  # Calculate the hat values
+  XtX_inv <- solve(t(X) %*% X)
+  h <- diag(X %*% XtX_inv %*% t(X))
 
-  # Store the values needed for both plots
+  # Calculate standardized residuals
+  standardized_residuals <- x$residuals /
+    (sqrt(x$sigma2) * sqrt(1 - h))
+
+  # Store the values needed for the plots
   data_plot <- data.frame(
-    predictor = predictor,
-    observed = observed,
     fitted = as.vector(x$fitted.values),
-    residuals = as.vector(x$residuals)
+    residuals = as.vector(x$residuals),
+    standardized_residuals = standardized_residuals
   )
 
-  # First plot: actual data and the fitted regression line
+  # Residuals vs Fitted plot
   p1 <- ggplot2::ggplot(
     data_plot,
-    ggplot2::aes(x = predictor, y = observed)
-  ) +
-    ggplot2::geom_point() +
-    ggplot2::geom_abline(
-      intercept = x$coefficients[1],
-      slope = x$coefficients[2]
-    ) +
-    ggplot2::labs(
-      x = all.vars(x$formula)[2],
-      y = all.vars(x$formula)[1],
-      title = "Linear Regression"
-    )
-
-  # Second plot: residuals compared with fitted values
-  p2 <- ggplot2::ggplot(
-    data_plot,
-    ggplot2::aes(x = fitted, y = residuals)
+    ggplot2::aes(x = .data$fitted, y = .data$residuals)
   ) +
     ggplot2::geom_point() +
     ggplot2::geom_hline(
@@ -160,13 +158,24 @@ plot.linreg <- function(x, ...) {
       title = "Residuals vs Fitted"
     )
 
+  # Scale-Location plot
+  p2 <- ggplot2::ggplot(
+    data_plot,
+    ggplot2::aes(
+      x = .data$fitted,
+      y = sqrt(abs(.data$standardized_residuals))
+    )
+  ) +
+    ggplot2::geom_point() +
+    ggplot2::labs(
+      x = "Fitted values",
+      y = "Sqrt(|Standardized residuals|)",
+      title = "Scale-Location"
+    )
+
   # Return both plots
   list(
-    regression_plot = p1,
-    residual_plot = p2
+    residual_plot = p1,
+    scale_location_plot = p2
   )
 }
-
-
-# Connect plot() to plot.linreg() for linreg models
-registerS3method("plot", "linreg", plot.linreg)

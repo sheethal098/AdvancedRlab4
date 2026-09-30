@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-The model residuals.
+A vector containing the model residuals.
 }
 \description{
 Extract residuals from a linreg model
