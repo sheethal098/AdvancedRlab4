@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-A summary of the regression model.
+The model object, invisibly.
 }
 \description{
 Summarize a linreg model
