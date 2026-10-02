@@ -1,7 +1,7 @@
 Package: AdvancedRlab4
 Type: Package
 Title: Linear Regression Using Ordinary Least Squares and QR Decomposition
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: c(
     person(
       "Sheethal", "Lakshmana",
