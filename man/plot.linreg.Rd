@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-A list of ggplot objects.
+A list containing two ggplot objects.
 }
 \description{
 Plot a linreg model
