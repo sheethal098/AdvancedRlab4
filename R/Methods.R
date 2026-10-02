@@ -1,3 +1,4 @@
+
 #' Extract coefficients from a linreg model
 #'
 #' @param object A linreg model.
@@ -20,9 +21,21 @@ coef.linreg <- function(object, ...) {
 #'
 #' @export
 #' @importFrom stats resid
-
 resid.linreg <- function(object, ...) {
   object$residuals
+}
+
+
+#' Prediction function for linreg models
+#'
+#' @param object A model object.
+#' @param ... Additional arguments.
+#'
+#' @return Predicted values.
+#'
+#' @export
+pred <- function(object, ...) {
+  UseMethod("pred")
 }
 
 
@@ -33,12 +46,6 @@ resid.linreg <- function(object, ...) {
 #'
 #' @return A vector containing the fitted values.
 #'
-#' @export
-pred <- function(object, ...) {
-  UseMethod("pred")
-}
-
-
 #' @export
 pred.linreg <- function(object, ...) {
   object$fitted.values
@@ -54,19 +61,17 @@ pred.linreg <- function(object, ...) {
 #'
 #' @export
 print.linreg <- function(x, ...) {
-
   cat("Call:\n")
   call_text <- paste(deparse(x$call), collapse = " ")
   call_text <- gsub("[[:space:]]+", " ", call_text)
-
   cat(call_text, "\n")
-
 
   cat("\nCoefficients:\n")
   print(x$coefficients)
 
   invisible(x)
 }
+
 
 #' Summarize a linreg model
 #'
@@ -79,7 +84,6 @@ print.linreg <- function(x, ...) {
 #' @importFrom stats printCoefmat
 summary.linreg <- function(object, ...) {
 
-  # Put the coefficient results into one numeric table
   coefficients <- cbind(
     Estimate = object$coefficients,
     `Std. Error` = object$std.error,
@@ -111,6 +115,7 @@ summary.linreg <- function(object, ...) {
   invisible(object)
 }
 
+
 #' Plot a linreg model
 #'
 #' Produces Residuals vs Fitted and Scale-Location plots.
@@ -121,7 +126,7 @@ summary.linreg <- function(object, ...) {
 #' @return A list containing two ggplot objects.
 #'
 #' @export
-#' @importFrom rlang .data
+#' @importFrom stats model.frame model.matrix model.response
 plot.linreg <- function(x, ...) {
 
   # Get the design matrix
@@ -145,7 +150,10 @@ plot.linreg <- function(x, ...) {
   # Residuals vs Fitted plot
   p1 <- ggplot2::ggplot(
     data_plot,
-    ggplot2::aes(x = .data$fitted, y = .data$residuals)
+    ggplot2::aes(
+      x = fitted,
+      y = residuals
+    )
   ) +
     ggplot2::geom_point() +
     ggplot2::geom_hline(
@@ -162,8 +170,8 @@ plot.linreg <- function(x, ...) {
   p2 <- ggplot2::ggplot(
     data_plot,
     ggplot2::aes(
-      x = .data$fitted,
-      y = sqrt(abs(.data$standardized_residuals))
+      x = fitted,
+      y = sqrt(abs(standardized_residuals))
     )
   ) +
     ggplot2::geom_point() +

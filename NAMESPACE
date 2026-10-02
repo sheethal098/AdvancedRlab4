@@ -9,9 +9,10 @@ S3method(summary,linreg)
 export(linreg)
 export(linreg_qr)
 export(pred)
-importFrom(rlang,.data)
 importFrom(stats,
+  model.frame,
   model.matrix,
+  model.response,
   printCoefmat,
   pt,
   resid

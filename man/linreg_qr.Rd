@@ -12,7 +12,7 @@ linreg_qr(formula, data)
 \item{data}{A data frame containing the variables in the formula.}
 }
 \value{
-An object of class `linreg` containing the regression
+An object of class \code{linreg} containing the regression
 coefficients, fitted values, residuals, degrees of freedom,
 residual variance, variance-covariance matrix, standard errors,
 t-values, p-values, formula, data, and design matrix.
