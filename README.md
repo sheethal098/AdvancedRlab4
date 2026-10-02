@@ -22,13 +22,13 @@ pak::pak("sheethal098/AdvancedRlab4")
 ```
 
 ## Usage
-
+ 
 ```r
 library(AdvancedRlab4)
-
+ 
 # Fit a linear model
 fit <- linreg(Petal.Length ~ Species, data = iris)
-
+ 
 # Inspect the fit
 print(fit)
 summary(fit)
@@ -36,28 +36,39 @@ coef(fit)
 resid(fit)
 pred(fit)
 ```
+ 
+### QR decomposition: `linreg_qr()`
+ 
+`linreg_qr()` fits the same model as `linreg()`, but solves the least squares
+problem with a QR decomposition of the design matrix instead of the normal
+equations. This is numerically more stable, especially when the predictors
+are highly correlated. It is called in the same way:
+ 
+```r
+fit_qr <- linreg_qr(Petal.Length ~ Species, data = iris)
+ 
+print(fit_qr)
+summary(fit_qr)
+coef(fit_qr)
+resid(fit_qr)
+pred(fit_qr)
+```
 
 ### Diagnostic plots
-
+ 
 `plot()` returns a list with two `ggplot2` objects: a Residuals vs Fitted plot
 and a Scale-Location plot. The most extreme observations are labelled with
 their observation number, and the number of labels can be changed with
 `n_labels`.
-
+ 
 ```r
 p <- plot(fit)
-
+ 
 p$residual_plot
 p$scale_location_plot
-
+ 
 # Label the 5 most extreme observations
 p5 <- plot(fit, n_labels = 5)
-```
-
-To show the two plots side by side (requires the `patchwork` package):
-
-```r
-patchwork::wrap_plots(p$residual_plot, p$scale_location_plot, ncol = 2)
 ```
 
 ## Vignette
