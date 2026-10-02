@@ -2,18 +2,26 @@
 % Please edit documentation in R/Methods.R
 \name{plot.linreg}
 \alias{plot.linreg}
-\title{Plot a linreg model}
+\title{Diagnostic plots for a linreg model}
 \usage{
-\method{plot}{linreg}(x, ...)
+\method{plot}{linreg}(x, n_labels = 3, ...)
 }
 \arguments{
-\item{x}{A linreg model.}
+\item{x}{A linreg model object.}
 
-\item{...}{Additional arguments.}
+\item{n_labels}{Number of the most extreme observations (largest
+absolute standardized residual) to label. Defaults to 3.}
+
+\item{...}{Additional arguments (currently not used).}
 }
 \value{
-A list containing two ggplot objects.
+A list containing two ggplot objects:
+\code{residual_plot} and \code{scale_location_plot}.
 }
 \description{
-Produces Residuals vs Fitted and Scale-Location plots.
+Produces a residuals vs fitted values plot and a scale-location plot.
+When the model contains a categorical predictor, both plots include a
+red line connecting the median value for each group. Otherwise, a red
+loess smoother is drawn instead. The most extreme observations are
+labelled with their observation number.
 }
