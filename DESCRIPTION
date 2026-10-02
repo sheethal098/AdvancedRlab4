@@ -11,7 +11,7 @@ Authors@R: c(
     person(
       "Mariam", "Yayloyan",
       email = "marya117@student.liu.se",
-      role = c("aut", "ctb")
+      role = c("aut", "cre")
     )
   )
 Description: Provides functions for fitting and analyzing linear regression
