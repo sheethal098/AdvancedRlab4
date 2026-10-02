@@ -1,27 +1,34 @@
 Package: AdvancedRlab4
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Linear Regression Using Ordinary Least Squares and QR Decomposition
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Jane", "Doe",
-      email = "jane@example.com",
+      "Sheethal", "Lakshmana",
+      email = "shehe874@student.liu.se",
+      role = c("aut", "ctb")
+    ),
+    person(
+      "Mariam", "Yayloyan",
+      email = "marya117@student.liu.se",
       role = c("aut", "cre")
     )
   )
-Description: More about what it does (maybe more than one line).
-    Continuation lines should be indented.
+Description: Provides functions for fitting and analyzing linear regression
+    models using ordinary least squares and QR decomposition.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
     ggplot2,
     stats,
     rlang
 Config/roxygen2/version: 8.1.0
-Suggests: 
+Roxygen: list(markdown = TRUE)
+Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+

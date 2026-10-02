@@ -2,18 +2,18 @@
 % Please edit documentation in R/Methods.R
 \name{pred}
 \alias{pred}
-\title{Return predictions from a linreg model}
+\title{Prediction function for linreg models}
 \usage{
 pred(object, ...)
 }
 \arguments{
-\item{object}{A linreg model.}
+\item{object}{A model object.}
 
 \item{...}{Additional arguments.}
 }
 \value{
-A vector containing the fitted values.
+Predicted values.
 }
 \description{
-Return predictions from a linreg model
+Prediction function for linreg models
 }
