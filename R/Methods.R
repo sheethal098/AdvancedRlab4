@@ -4,7 +4,8 @@
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The regression coefficients.
+#' @return A named vector containing the regression coefficients.
+#'
 #' @export
 coef.linreg <- function(object, ...) {
   object$coefficients
@@ -16,7 +17,8 @@ coef.linreg <- function(object, ...) {
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The model residuals.
+#' @return A vector containing the model residuals.
+#'
 #' @export
 #' @importFrom stats resid
 resid.linreg <- function(object, ...) {
@@ -30,6 +32,7 @@ resid.linreg <- function(object, ...) {
 #' @param ... Additional arguments.
 #'
 #' @return Predicted values.
+#'
 #' @export
 pred <- function(object, ...) {
   UseMethod("pred")
@@ -41,7 +44,8 @@ pred <- function(object, ...) {
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The fitted values from the model.
+#' @return A vector containing the fitted values.
+#'
 #' @export
 pred.linreg <- function(object, ...) {
   object$fitted.values
@@ -53,12 +57,16 @@ pred.linreg <- function(object, ...) {
 #' @param x A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return The object invisibly.
+#' @return The model object, invisibly.
+#'
 #' @export
 print.linreg <- function(x, ...) {
-  cat("Linear Regression Model\n")
-  cat("Formula:", deparse(x$formula), "\n\n")
-  cat("Coefficients:\n")
+  cat("Call:\n")
+  call_text <- paste(deparse(x$call), collapse = " ")
+  call_text <- gsub("[[:space:]]+", " ", call_text)
+  cat(call_text, "\n")
+
+  cat("\nCoefficients:\n")
   print(x$coefficients)
 
   invisible(x)
@@ -70,27 +78,39 @@ print.linreg <- function(x, ...) {
 #' @param object A linreg model.
 #' @param ... Additional arguments.
 #'
-#' @return A summary of the regression model.
+#' @return The model object, invisibly.
+#'
 #' @export
+#' @importFrom stats printCoefmat
 summary.linreg <- function(object, ...) {
 
   coefficients <- cbind(
-    Estimate = as.vector(object$coefficients),
-    `Std. Error` = as.vector(object$std.error),
-    `t value` = as.vector(object$t.value),
-    `Pr(>|t|)` = as.vector(object$p.value)
+    Estimate = object$coefficients,
+    `Std. Error` = object$std.error,
+    `t value` = object$t.value,
+    `Pr(>|t|)` = object$p.value
   )
 
-  rownames(coefficients) <- rownames(object$coefficients)
+  rownames(coefficients) <- names(object$coefficients)
 
-  cat("Linear Regression Model\n")
-  cat("Formula:", deparse(object$formula), "\n\n")
+  cat("Call:\n")
+  print(object$call)
 
-  cat("Coefficients:\n")
-  print(coefficients)
+  cat("\nCoefficients:\n")
+  printCoefmat(
+    coefficients,
+    P.values = TRUE,
+    has.Pvalue = TRUE,
+    signif.stars = TRUE
+  )
 
-  cat("\nResidual standard error:", sqrt(object$sigma2), "\n")
-  cat("Degrees of freedom:", object$df, "\n")
+  cat(
+    "\nResidual standard error:",
+    sqrt(object$sigma2),
+    "on",
+    object$df,
+    "degrees of freedom\n"
+  )
 
   invisible(object)
 }
@@ -98,61 +118,72 @@ summary.linreg <- function(object, ...) {
 
 #' Plot a linreg model
 #'
+#' Produces Residuals vs Fitted and Scale-Location plots.
+#'
 #' @param x A linreg model.
 #' @param ... Additional arguments.
 #'
 #' @return A list containing two ggplot objects.
-#' @importFrom stats model.frame model.matrix model.response
+#'
 #' @export
-
+#' @importFrom stats model.frame model.matrix model.response
 plot.linreg <- function(x, ...) {
 
-  # Get the response variable from the original data
-  observed <- model.response(model.frame(x$formula, x$data))
+  # Get the design matrix
+  X <- x$X
 
-  # Get predictor values
-  predictor <- model.matrix(x$formula, x$data)[, 2]
+  # Calculate the hat values
+  XtX_inv <- solve(t(X) %*% X)
+  h <- diag(X %*% XtX_inv %*% t(X))
 
-  # Create a data frame for plotting
+  # Calculate standardized residuals
+  standardized_residuals <- x$residuals /
+    (sqrt(x$sigma2) * sqrt(1 - h))
+
+  # Store the values needed for the plots
   data_plot <- data.frame(
-    predictor = predictor,
-    observed = observed,
-    fitted_values = as.vector(x$fitted.values),
-    residual_values = as.vector(x$residuals)
+    fitted = as.vector(x$fitted.values),
+    residuals = as.vector(x$residuals),
+    standardized_residuals = standardized_residuals
   )
 
-  # Regression plot
+  # Residuals vs Fitted plot
   p1 <- ggplot2::ggplot(
     data_plot,
-    ggplot2::aes(x = predictor, y = observed)
-  )
-    ggplot2::geom_point()
-    ggplot2::geom_abline(
-      intercept = x$coefficients[1],
-      slope = x$coefficients[2]
+    ggplot2::aes(
+      x = fitted,
+      y = residuals
     )
-    ggplot2::labs(
-      x = all.vars(x$formula)[2],
-      y = all.vars(x$formula)[1],
-      title = "Linear Regression"
-    )
-  # Residual plot
-  p2 <- ggplot2::ggplot(
-    data_plot,
-    ggplot2::aes(x = fitted_values, y = residual_values)
-  )
+  ) +
     ggplot2::geom_point() +
     ggplot2::geom_hline(
       yintercept = 0,
       linetype = "dashed"
-    )
+    ) +
     ggplot2::labs(
       x = "Fitted values",
       y = "Residuals",
       title = "Residuals vs Fitted"
     )
+
+  # Scale-Location plot
+  p2 <- ggplot2::ggplot(
+    data_plot,
+    ggplot2::aes(
+      x = fitted,
+      y = sqrt(abs(standardized_residuals))
+    )
+  ) +
+    ggplot2::geom_point() +
+    ggplot2::labs(
+      x = "Fitted values",
+      y = "Sqrt(|Standardized residuals|)",
+      title = "Scale-Location"
+    )
+
+  # Return both plots
   list(
-    regression_plot = p1,
-    residual_plot = p2
+    residual_plot = p1,
+    scale_location_plot = p2
   )
 }

@@ -15,5 +15,5 @@
 A list containing two ggplot objects.
 }
 \description{
-Plot a linreg model
+Produces Residuals vs Fitted and Scale-Location plots.
 }

@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-The fitted values from the model.
+A vector containing the fitted values.
 }
 \description{
 Return predictions from a linreg model

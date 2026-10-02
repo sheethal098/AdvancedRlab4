@@ -7,11 +7,13 @@ S3method(print,linreg)
 S3method(resid,linreg)
 S3method(summary,linreg)
 export(linreg)
+export(linreg_qr)
 export(pred)
 importFrom(stats,
   model.frame,
   model.matrix,
   model.response,
+  printCoefmat,
   pt,
   resid
 )

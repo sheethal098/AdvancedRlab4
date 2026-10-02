@@ -12,7 +12,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-The regression coefficients.
+A named vector containing the regression coefficients.
 }
 \description{
 Extract coefficients from a linreg model

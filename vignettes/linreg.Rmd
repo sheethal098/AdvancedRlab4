@@ -1,0 +1,169 @@
+---
+title: "AdvancedRlab4: Linear Regression"
+author: "Mariam Yayloyan"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{AdvancedRlab4: Linear Regression}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+The `AdvancedRlab4` package provides functions for fitting multiple linear
+regression models. The main function, `linreg()`, fits a linear regression
+model using the ordinary least squares (OLS) method. The package also
+provides `linreg_qr()`, which fits a model using QR decomposition.
+
+Both functions return objects of class `linreg`. Several S3 methods are
+implemented for these objects, including `print()`, `summary()`, `coef()`,
+`resid()`, `pred()`, and `plot()`.
+
+This vignette demonstrates how to use the package with the built-in
+`iris` dataset.
+
+# Fitting a linear regression model
+
+First, load the package:
+
+```{r load-package}
+library(AdvancedRlab4)
+```
+
+We use the `iris` dataset and model `Petal.Length` as a function of
+`Sepal.Width` and `Sepal.Length`.
+
+```{r fit-model}
+model <- linreg(
+  Petal.Length ~ Sepal.Width + Sepal.Length,
+  data = iris
+)
+```
+
+The `linreg()` function takes a formula describing the regression model
+and a data frame containing the variables in the formula.
+The returned object contains the estimated coefficients, fitted values,
+residuals, residual variance, variance-covariance matrix, standard errors,
+t-values, p-values, and other model information.
+
+## Printing the model
+
+The `print()` method provides a short overview of the fitted model.
+
+```{r print-model}
+print(model)
+```
+
+## Model summary
+
+The `summary()` method provides more detailed information about the
+fitted regression model.
+
+```{r summary-model}
+summary(model)
+```
+
+The coefficient table contains the estimated coefficients, standard
+errors, t-values, and p-values. The summary also reports the residual
+standard error and residual degrees of freedom.
+
+## Extracting coefficients
+
+The `coef()` method extracts the estimated regression coefficients.
+
+```{r coef-model}
+coef(model)
+```
+
+## Extracting residuals
+
+The `resid()` method extracts the residuals from the fitted model.
+
+```{r resid-model}
+resid(model)
+```
+
+A residual is the difference between an observed response and its
+corresponding fitted value.
+
+## Obtaining fitted values
+
+The `pred()` method returns the fitted values produced by the model.
+
+```{r pred-model}
+pred(model)
+```
+
+These values represent the predicted response for each observation in
+the data used to fit the model.
+
+## Diagnostic plots
+
+The `plot()` method produces two diagnostic plots.
+
+```{r plot-model}
+plots <- plot(model)
+```
+
+The first plot shows residuals against fitted values.
+
+```{r residual-plot, fig.width = 6, fig.height = 4}
+plots$residual_plot
+```
+
+The second plot is a Scale-Location plot.
+
+```{r scale-location-plot, fig.width = 6, fig.height = 4}
+plots$scale_location_plot
+```
+
+These plots can be used to visually examine the residuals and identify
+possible patterns in the model errors.
+
+# QR decomposition implementation
+
+The package also provides `linreg_qr()`, which fits a multiple linear
+regression model using QR decomposition.
+
+```{r fit-qr}
+model_qr <- linreg_qr(
+  Petal.Length ~ Sepal.Width + Sepal.Length,
+  data = iris
+)
+```
+
+The QR-based model is also an object of class `linreg`, so the same
+methods can be used.
+
+```{r summary-qr}
+summary(model_qr)
+```
+
+The coefficients from the two implementations can be compared:
+
+```{r compare-coef}
+coef(model)
+coef(model_qr)
+```
+
+The two implementations produce the same regression estimates up to
+numerical precision, while using different computational approaches
+to obtain the least-squares estimates.
+
+# Conclusion
+
+The `AdvancedRlab4` package provides an implementation of multiple
+linear regression together with methods for inspecting and working
+with fitted models. The `linreg()` function uses ordinary least
+squares, while `linreg_qr()` uses QR decomposition.
+
+Both functions return `linreg` objects that can be used with the
+implemented `print()`, `summary()`, `coef()`, `resid()`, `pred()`, and
+`plot()` methods.
