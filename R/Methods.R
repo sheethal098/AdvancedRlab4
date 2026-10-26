@@ -275,3 +275,111 @@ plot.linreg <- function(x, n_labels = 3, ...) {
     scale_location_plot = p2
   )
 }
+
+
+#' Extract coefficients from a ridgereg model
+#'
+#' @param object A ridgereg model.
+#' @param ... Additional arguments.
+#'
+#' @return A named vector containing the ridge regression coefficients.
+#'
+#' @export
+coef.ridgereg <- function(object, ...) {
+  object$coefficients
+}
+
+#' Print a ridgereg model
+#'
+#' @param x A ridgereg model.
+#' @param ... Additional arguments.
+#'
+#' @return The model object, invisibly.
+#'
+#' @export
+print.ridgereg <- function(x, ...) {
+
+  # Printing the model call
+  cat("Call:\n")
+
+  # Converting the stored call to text
+  # and removing unnecessary whitespace
+  call_text <- paste(deparse(x$call), collapse = " ")
+  call_text <- gsub("[[:space:]]+", " ", call_text)
+
+  # Printing the model call
+  cat(call_text, "\n")
+
+  # Printing the heading for the coefficients
+  cat("\nCoefficients:\n")
+
+  # Printing the estimated ridge regression coefficients
+  print(x$coefficients)
+
+  # Returning the model object invisibly
+  invisible(x)
+}
+
+
+
+#' Predict from a ridgereg model
+#'
+#' @param object A ridgereg model.
+#' @param newdata Optional data frame for prediction.
+#' @param ... Additional arguments.
+#' @return A vector of predicted values.
+#' @export
+#' @importFrom stats model.frame model.matrix terms delete.response formula
+predict.ridgereg <- function(object, newdata = NULL, ...) {
+
+  # Returning predictions for the training data
+  if (is.null(newdata)) {
+    return(object$fitted.values)
+  }
+
+  if (!is.data.frame(newdata)) {
+    stop("newdata must be a data frame")
+  }
+
+  # Reconstructing the predictor terms from the original formula
+  predictor_terms <- stats::delete.response(
+    stats::terms(object$formula)
+  )
+
+  # Converting the terms to a formula without the response
+  predictor_formula <- stats::formula(predictor_terms)
+
+  # Building the model frame using the original factor levels
+  mf <- stats::model.frame(
+    formula = predictor_formula,
+    data = newdata,
+    xlev = object$xlevels,
+    na.action = stats::na.fail
+  )
+
+  # Constructing the design matrix using the original contrasts
+  X_new <- stats::model.matrix(
+    object = predictor_terms,
+    data = mf,
+    contrasts.arg = object$contrasts
+  )
+
+  # Matching the columns used when fitting the model
+  expected_names <- colnames(object$X)
+
+  if (!all(expected_names %in% colnames(X_new))) {
+    stop("newdata does not contain the required predictor columns")
+  }
+
+  X_new <- X_new[, expected_names, drop = FALSE]
+
+  # Standardizing using the training data's means and standard deviations
+  for (name in names(object$means)) {
+    j <- match(name, colnames(X_new))
+    X_new[, j] <- (X_new[, j] - object$means[name]) /
+      object$sds[name]
+  }
+
+  # Calculating predictions
+  as.vector(X_new %*% object$coefficients)
+}
