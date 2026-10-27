@@ -38,11 +38,11 @@ library(AdvancedRlab4)
 ```
 
 We use the `iris` dataset and model `Petal.Length` as a function of
-`Sepal.Width` and `Sepal.Length`.
+`Species`.
 
 ```{r fit-model}
 model <- linreg(
-  Petal.Length ~ Sepal.Width + Sepal.Length,
+  Petal.Length ~ Species,
   data = iris
 )
 ```
