@@ -1,7 +1,7 @@
 Package: AdvancedRlab4
 Type: Package
-Title: Linear Regression Using Ordinary Least Squares and QR Decomposition
-Version: 1.0.0
+Title: Linear and Ridge Regression with QR Decomposition
+Version: 1.1.0
 Authors@R: c(
     person(
       "Sheethal", "Lakshmana",
@@ -14,8 +14,12 @@ Authors@R: c(
       role = c("aut", "cre")
     )
   )
-Description: Provides functions for fitting and analyzing linear regression
-    models using ordinary least squares and QR decomposition.
+Description: Provides functions for fitting and analyzing linear
+    regression models using ordinary least squares and QR decomposition,
+    and for fitting ridge regression models with a penalty parameter
+    lambda. Includes print, summary, coefficient, residual, prediction
+    and diagnostic plot methods, as well as a function for visualizing
+    average flight delays at New York City airports.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
