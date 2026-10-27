@@ -13,6 +13,8 @@ export(linreg)
 export(linreg_qr)
 export(pred)
 export(ridgereg)
+export(ridgereg_qr)
+export(visualize_airport_delays)
 importFrom(rlang,.data)
 importFrom(stats,
   aggregate,

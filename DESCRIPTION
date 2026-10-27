@@ -20,9 +20,11 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
+    dplyr,
     ggplot2,
-    stats,
-    rlang
+    nycflights13,
+    rlang,
+    stats
 Config/roxygen2/version: 8.1.0
 Roxygen: list(markdown = TRUE)
 Suggests:

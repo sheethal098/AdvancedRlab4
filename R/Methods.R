@@ -1,3 +1,4 @@
+utils::globalVariables(c("fitted", "residuals"))
 
 #' Extract coefficients from a linreg model
 #'
@@ -343,7 +344,7 @@ predict.ridgereg <- function(object, newdata = NULL, ...) {
 
   # Reconstructing the predictor terms from the original formula
   predictor_terms <- stats::delete.response(
-    stats::terms(object$formula)
+    object$terms
   )
 
   # Converting the terms to a formula without the response
