@@ -65,3 +65,36 @@ test_that("predict works with new data", {
     tolerance = 1e-8
   )
 })
+
+
+
+test_that("ridgereg coefficients are similar to MASS::lm.ridge", {
+  formula <- Petal.Length ~ Sepal.Length + Petal.Width
+  lambda <- 1
+
+  mod <- ridgereg(formula, data = iris, lambda = lambda)
+  ref <- MASS::lm.ridge(formula, data = iris, lambda = lambda)
+
+  # Convert our coefficients to the original predictor scale
+  beta <- mod$coefficients
+  predictor_names <- names(mod$sds)
+  slopes <- beta[predictor_names] / mod$sds[predictor_names]
+
+  intercept <- unname(beta["(Intercept)"]) -
+    sum(mod$means[predictor_names] * slopes)
+
+  # Explicitly arrange coefficients in the same order
+  our_coef <- c(
+    intercept,
+    unname(slopes["Sepal.Length"]),
+    unname(slopes["Petal.Width"])
+  )
+
+  ref_coef <- unname(coef(ref))
+
+  expect_equal(
+    our_coef,
+    ref_coef,
+    tolerance = 0.05
+  )
+})
