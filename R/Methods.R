@@ -1,3 +1,4 @@
+utils::globalVariables(c("fitted", "residuals"))
 
 #' Extract coefficients from a linreg model
 #'

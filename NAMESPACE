@@ -9,11 +9,17 @@ S3method(summary,linreg)
 export(linreg)
 export(linreg_qr)
 export(pred)
+export(ridgereg)
+export(ridgereg_qr)
 importFrom(stats,
   model.frame,
   model.matrix,
   model.response,
+  na.fail,
   printCoefmat,
   pt,
-  resid
+  resid,
+  sd,
+  setNames,
+  terms
 )
