@@ -1,4 +1,3 @@
-
 #' Ridge regression using QR decomposition
 #'
 #' Calculates ridge regression coefficients using

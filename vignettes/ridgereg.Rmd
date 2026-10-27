@@ -1,5 +1,6 @@
----
-title: "ridgereg"
+title: "Ridge regression with ridgereg() and caret"
+author: "Your Name"
+date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{ridgereg}
@@ -7,13 +8,285 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
 )
 ```
 
-```{r setup}
+## Introduction
+
+This vignette shows how to solve a simple prediction problem with the
+`ridgereg()` function from this package. We use the `BostonHousing` data
+from the **mlbench** package and the **caret** package to
+
+1. split the data into a training and a test set,
+2. fit a linear regression model and a linear regression model with forward
+   selection of covariates,
+3. fit ridge regression models with `ridgereg()` for different values of
+   $\lambda$ and choose $\lambda$ by 10-fold cross-validation,
+4. compare all three models on the test set.
+
+The response is `medv` (median home value in $1000s).
+
+```{r packages, message = FALSE}
 library(AdvancedRlab4)
+library(caret)
+library(mlbench)
 ```
+
+## 1. Training and test data
+
+```{r data}
+data("BostonHousing")
+str(BostonHousing)
+
+set.seed(2024)
+train_index <- createDataPartition(BostonHousing$medv, p = 0.8, list = FALSE)
+train <- BostonHousing[train_index, ]
+test  <- BostonHousing[-train_index, ]
+
+c(train = nrow(train), test = nrow(test))
+```
+
+`createDataPartition()` samples within quantile groups of `medv`, so the
+response has a similar distribution in both sets.
+
+To make the three models comparable, they all use the same 10 cross-validation
+folds of the training set.
+
+```{r folds}
+set.seed(2024)
+folds <- createFolds(train$medv, k = 10, returnTrain = TRUE)
+
+ctrl <- trainControl(method = "cv", number = 10, index = folds)
+
+x_train <- train[, names(train) != "medv"]
+y_train <- train$medv
+x_test  <- test[, names(test) != "medv"]
+y_test  <- test$medv
+```
+
+## 2. Linear regression and forward selection
+
+### Ordinary linear regression
+
+```{r lm}
+fit_lm <- train(x = x_train, y = y_train, method = "lm", trControl = ctrl)
+fit_lm
+summary(fit_lm)
+```
+
+### Linear regression with forward selection
+
+The `leapForward` method in caret tunes `nvmax`, which starts at one
+covariate, so it can never select the intercept-only model. Since the forward
+selection must be able to choose among models with $0, 1, \dots, n$
+covariates, we define a small custom caret model instead. It uses
+`stats::step()` with `direction = "forward"`; the tuning parameter `nsteps` is
+the number of covariates added, from 0 (intercept only) up to all of them.
+Setting `k = 0` removes the AIC penalty so that `step()` always adds the
+best remaining covariate until `nsteps` is reached, and cross-validation
+(not AIC) decides how many covariates to keep.
+
+```{r forward-model}
+forward_lm <- list(
+  label = "Linear regression with forward selection",
+  library = NULL,
+  type = "Regression",
+  parameters = data.frame(
+    parameter = "nsteps",
+    class = "numeric",
+    label = "Number of covariates"
+  ),
+  grid = function(x, y, len = NULL, search = "grid") {
+    data.frame(nsteps = 0:ncol(x))
+  },
+  fit = function(x, y, wts, param, lev, last, weights, classProbs, ...) {
+    dat <- as.data.frame(x)
+    dat$.outcome <- y
+    upper <- reformulate(names(x), response = ".outcome")
+    start <- lm(.outcome ~ 1, data = dat)
+    step(
+      start,
+      scope = list(lower = ~ 1, upper = upper),
+      direction = "forward",
+      steps = param$nsteps,
+      k = 0,
+      trace = 0
+    )
+  },
+  predict = function(modelFit, newdata, submodels = NULL) {
+    predict(modelFit, newdata = as.data.frame(newdata))
+  },
+  prob = NULL,
+  sort = function(x) x[order(x$nsteps), ]
+)
+```
+
+```{r forward-fit}
+p <- ncol(x_train)
+
+fit_fwd <- train(
+  x = x_train, y = y_train,
+  method = forward_lm,
+  tuneGrid = data.frame(nsteps = 0:p),
+  trControl = ctrl
+)
+fit_fwd
+```
+
+The tuning grid contains all `r p + 1` candidates (0 to `r p` covariates), so
+the condition on the model search is satisfied. The cross-validated RMSE
+for each model size:
+
+```{r forward-plot}
+plot(fit_fwd, xlab = "Number of covariates")
+fit_fwd$bestTune
+summary(fit_fwd$finalModel)
+```
+
+## 3. Performance on the training set
+
+```{r train-perf}
+perf <- function(model, x, y) {
+  postResample(pred = predict(model, newdata = x), obs = y)
+}
+
+train_perf <- rbind(
+  `Linear regression`  = perf(fit_lm,  x_train, y_train),
+  `Forward selection`  = perf(fit_fwd, x_train, y_train)
+)
+round(train_perf, 3)
+```
+
+The training error is optimistic, since the same data were used to fit the
+models. The cross-validated estimates above are more honest about
+out-of-sample performance.
+
+## 4. Ridge regression with ridgereg()
+
+To use `ridgereg()` in caret we define a custom model, as described in the
+caret documentation. It has one tuning parameter, `lambda`. caret passes the
+predictors `x` and outcome `y` separately, so `fit` first combines them into a
+data frame and then calls `ridgereg()`. `ridgereg()` standardizes the
+predictors internally and `predict.ridgereg()` applies the same scaling to new
+data.
+
+```{r ridge-model}
+ridge_caret <- list(
+  label = "Ridge regression (ridgereg)",
+  library = NULL,
+  type = "Regression",
+  parameters = data.frame(
+    parameter = "lambda",
+    class = "numeric",
+    label = "Lambda"
+  ),
+  grid = function(x, y, len = NULL, search = "grid") {
+    data.frame(lambda = 10^seq(-3, 3, length.out = len))
+  },
+  fit = function(x, y, wts, param, lev, last, weights, classProbs, ...) {
+    dat <- as.data.frame(x)
+    dat$.outcome <- y
+    ridgereg(.outcome ~ ., data = dat, lambda = param$lambda)
+  },
+  predict = function(modelFit, newdata, submodels = NULL) {
+    predict(modelFit, newdata = as.data.frame(newdata))
+  },
+  prob = NULL,
+  sort = function(x) x[order(-x$lambda), ]
+)
+```
+
+## 5. Choosing lambda by 10-fold cross-validation
+
+We evaluate a grid of $\lambda$ values on a logarithmic scale (plus
+$\lambda = 0$, which corresponds to ordinary least squares) using the same
+folds as before.
+
+```{r ridge-fit}
+lambda_grid <- data.frame(lambda = c(0, 10^seq(-3, 3, length.out = 40)))
+
+fit_ridge <- train(
+  x = x_train, y = y_train,
+  method = ridge_caret,
+  tuneGrid = lambda_grid,
+  trControl = ctrl
+)
+
+fit_ridge$bestTune
+```
+
+```{r ridge-plot}
+plot(fit_ridge, scales = list(x = list(log = 10)))
+```
+
+The cross-validated RMSE for the best $\lambda$ and its neighbours:
+
+```{r ridge-results}
+res <- fit_ridge$results
+res <- res[order(res$RMSE), ]
+head(res[, c("lambda", "RMSE", "Rsquared", "MAE")], 5)
+```
+
+The final model, refitted by caret on the whole training set with the
+selected $\lambda$, is
+
+```{r ridge-final}
+fit_ridge$finalModel
+```
+
+## 6. Evaluation on the test set
+
+```{r test-perf}
+test_perf <- rbind(
+  `Linear regression`          = perf(fit_lm,    x_test, y_test),
+  `Forward selection`          = perf(fit_fwd,   x_test, y_test),
+  `Ridge regression (ridgereg)` = perf(fit_ridge, x_test, y_test)
+)
+round(test_perf, 3)
+```
+
+```{r test-plot, fig.width = 7, fig.height = 3.5}
+oldpar <- par(mfrow = c(1, 3), mar = c(4, 4, 3, 1))
+models <- list(`Linear` = fit_lm, `Forward` = fit_fwd, `Ridge` = fit_ridge)
+for (nm in names(models)) {
+  pred <- predict(models[[nm]], newdata = x_test)
+  plot(y_test, pred, xlab = "Observed medv", ylab = "Predicted medv",
+       main = nm, pch = 1)
+  abline(0, 1, col = "red")
+}
+par(oldpar)
+```
+
+### Concluding comments
+
+```{r conclusion-helper, echo = FALSE}
+best <- rownames(test_perf)[which.min(test_perf[, "RMSE"])]
+```
+
+On the test set the model with the lowest RMSE is **`r best`**
+(RMSE = `r round(min(test_perf[, "RMSE"]), 3)`).
+
+Some points to keep in mind when interpreting the results:
+
+- The Boston housing data has 13 predictors and about 500 observations, and
+  some predictors are correlated (for example `tax` and `rad`). Ridge
+  regression is designed for this situation, but with this many observations
+  per covariate the benefit over ordinary least squares is usually small,
+  and the three test errors are expected to be close to each other.
+- Forward selection typically keeps most of the covariates here. The
+  cross-validation curve flattens after a handful of predictors, so the
+  chosen model size is not very sharply determined.
+- The best $\lambda$ is chosen on the training set only, so the test set gives
+  an unbiased comparison. Because the test set is small (about 100 rows),
+  differences of a few hundredths in RMSE are within noise; a different
+  random split could change the ranking.
+- All three models are linear in the predictors. The residual patterns in
+  the diagnostic plots (see `plot.linreg()`) suggest non-linear effects, for
+  example in `lstat`, so a more flexible model would likely improve
+  predictions more than any choice among these three.

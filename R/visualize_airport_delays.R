@@ -1,4 +1,3 @@
-
 #' Visualize average flight delays by airport
 #'
 #' Calculates average departure delays for New York City
